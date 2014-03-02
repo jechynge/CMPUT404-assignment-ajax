@@ -87,6 +87,7 @@ def world():
     '''you should probably return the world here'''
     if(request.method == 'POST'):
         entities = flask_post_json()
+        print(entities)
         for i in entities:
             myWorld.set(i, entities[i])
             
