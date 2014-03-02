@@ -57,7 +57,8 @@ class World:
 # you can test your webservice from the commandline
 # curl -v   -H "Content-Type: appication/json" -X PUT http://127.0.0.1:5000/entity/X -d '{"x":1,"y":1}' 
 
-myWorld = World()          
+myWorld = World()
+myCounter = 1;
 
 # I give this to you, this is how you get the raw body/data portion of a post in flask
 # this should come with flask but whatever, it's not my project.
@@ -78,18 +79,18 @@ def hello():
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     updateEntity = flask_post_json()
-    myWorld.update(entity, entity, updateEntity)
+    for key in updateEntity:
+        myWorld.update(entity, key, updateEntity[key])
     
-    return flask.jsonify(updateEntity)
+    return flask.jsonify(myWorld.get(entity))
 
 @app.route("/world", methods=['POST','GET'])
 def world():
-    '''you should probably return the world here'''
     if(request.method == 'POST'):
         entities = flask_post_json()
-        for i in entities:
-            myWorld.set(i, entities[i])
-            
+        for entity in entities:
+            myWorld.set(++myCounter, entity)
+    
     return flask.jsonify(myWorld.world())
 
 @app.route("/seeTheWorld", methods=['GET'])
@@ -109,12 +110,7 @@ def seeTheWorld():
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    myEntity = myWorld.get(entity)
-    if(bool(myEntity)):
-        key, value = myWorld.get(entity).popitem()
-        return flask.jsonify(value)
-    
-    return flask.jsonify(myEntity)
+    return flask.jsonify(myWorld.get(entity))
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
