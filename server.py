@@ -73,28 +73,53 @@ def flask_post_json():
 
 @app.route("/")
 def hello():
-    '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return flask.redirect('/static/index.html')
 
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
-    '''update the entities via this interface'''
-    return None
+    updateEntity = flask_post_json()
+    myWorld.update(entity, entity, updateEntity)
+    
+    return flask.jsonify(updateEntity)
 
-@app.route("/world", methods=['POST','GET'])    
+@app.route("/world", methods=['POST','GET'])
 def world():
     '''you should probably return the world here'''
-    return None
+    if(request.method == 'POST'):
+        entities = flask_post_json()
+        for i in entities:
+            myWorld.set(i, entities[i])
+            
+    return flask.jsonify(myWorld.world())
+
+@app.route("/seeTheWorld", methods=['GET'])
+def seeTheWorld():
+    html = "<!DOCTYPE html><head><title>World Representation</title></head><body>"
+    html += "<h1>World Representation</h1>"
+    html += "<table><thead><th>Name</th><th>X</th><th>Y</th><th>Colour</th></thead>"
+    html += "<tbody>"
+    entities = myWorld.world()
+    for entity in entities:
+        myEntity = entities[entity]
+        html += "<tr><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (entity, myEntity["x"], myEntity["y"], myEntity["colour"])
+    
+    html += "</tbody></table></body></html>"
+    
+    return html
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    myEntity = myWorld.get(entity)
+    if(bool(myEntity)):
+        key, value = myWorld.get(entity).popitem()
+        return flask.jsonify(value)
+    
+    return flask.jsonify(myEntity)
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
-    '''Clear the world out!'''
-    return None
+    myWorld.clear()
+    return "World cleared."
 
 if __name__ == "__main__":
     app.run()
