@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright 2013 Abram Hindle
+# Copyright 2013 Abram Hindle, Jordan Ching
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 import flask
 from flask import Flask, request
 import json
+import random
 app = Flask(__name__)
 app.debug = True
 
@@ -57,7 +58,8 @@ class World:
 # you can test your webservice from the commandline
 # curl -v   -H "Content-Type: appication/json" -X PUT http://127.0.0.1:5000/entity/X -d '{"x":1,"y":1}' 
 
-myWorld = World()          
+myWorld = World()
+myCounter = 1;
 
 # I give this to you, this is how you get the raw body/data portion of a post in flask
 # this should come with flask but whatever, it's not my project.
@@ -78,19 +80,19 @@ def hello():
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     updateEntity = flask_post_json()
-    myWorld.update(entity, entity, updateEntity)
+    for key in updateEntity:
+        myWorld.update(entity, key, updateEntity[key])
     
-    return flask.jsonify(updateEntity)
+    return flask.jsonify(myWorld.get(entity))
 
 @app.route("/world", methods=['POST','GET'])
 def world():
-    '''you should probably return the world here'''
     if(request.method == 'POST'):
         entities = flask_post_json()
         print(entities)
         for i in entities:
-            myWorld.set(i, entities[i])
-            
+            myWorld.set(str(random.randint(1,1000000)), entities[i])
+    
     return flask.jsonify(myWorld.world())
 
 @app.route("/seeTheWorld", methods=['GET'])
@@ -110,12 +112,7 @@ def seeTheWorld():
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
-    myEntity = myWorld.get(entity)
-    if(bool(myEntity)):
-        key, value = myWorld.get(entity).popitem()
-        return flask.jsonify(value)
-    
-    return flask.jsonify(myEntity)
+    return flask.jsonify(myWorld.get(entity))
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
