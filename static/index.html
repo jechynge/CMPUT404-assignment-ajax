@@ -6,7 +6,7 @@
     <meta content='width=device-width; height=device-height; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;' name='viewport' />
     <meta name="viewport" content="width=device-width" />
     <meta name="license" content="
-        Copyright 2013 Abram Hindle
+        Copyright 2013 Abram Hindle, Jordan Ching
         
         Licensed under the Apache License, Version 2.0 (the "License");
         you may not use this file except in compliance with the License.
@@ -22,15 +22,29 @@
     "/>
     <script src="json2.js"></script>
   </head> 
-  <body bgcolor="black" height="100%" width="100%"> 
-    <canvas id="c" width="100%" height="100%" style="-webkit-tap-highlight-color: transparent;"></canvas> 
+  <body bgcolor="black" height="100%" width="100%" style="padding:0;margin:0;">
+    <div style="width:100%; height:100px; color:white; font-family:sans-serif; margin:10px;">
+      <input type="button" onclick="javascript:resetCanvas();" value="Reset Canvas" /><br />
+      <div style="float:left;">
+	<span style="display:inline-block;width:170px;">Mouse up colour:</span> <input type="color" id="upColour" value="red" /><br />
+	<span style="display:inline-block;width:170px;">Mouse down colour:</span> <input type="color" id="downColour" value="blue" /><br />
+	<span style="display:inline-block;width:170px;">Mouse drag colour:</span> <input type="color" id="dragColour" value="green" /><br />
+      </div>
+      <div style="float:left;margin-left:10px;">
+	<span style="display:inline-block;width:170px;">Mouse up radius:</span> <input type="spinner" id="upRadius" value="30" /><br />
+	<span style="display:inline-block;width:170px;">Mouse down radius:</span> <input type="spinner" id="downRadius" value="30" /><br />
+	<span style="display:inline-block;width:170px;">Mouse drag radius:</span> <input type="spinner" id="dragRadius" value="10" /><br />
+      </div>
+    </div>
+    <div style="width:100%;height:100%;margin:0;padding:0;">
+      <canvas id="c" style="-moz-box-sizing:border-box;box-sizing:border-box;-webkit-tap-highlight-color: transparent;border:2px solid white;width:100%;height:100%;"></canvas> 
+    </div>
     <script>
 var canvas = document.getElementById('c');
 var host = window.location.host;
 var context = canvas.getContext("2d");
 var W = canvas.width  = window.innerWidth-6;
 var H = canvas.height = window.innerHeight-50;
-
 
 function sendJSONXMLHTTPRequest(url, objects, callback) {
     var xhr = new XMLHttpRequest();
@@ -49,17 +63,27 @@ function sendJSONXMLHTTPRequest(url, objects, callback) {
         }
     };
     
-    var body = objects != null ? JSON.stringify(world) : null;
+    var method, body = null;
     
-    xhr.open("POST",url,true);
-    xhr.setRequestHeader("Content-Type","application/json");
+    //if (objects != null) {
+      body = JSON.stringify(newObjects);
+      newObjects = {};
+      method = "POST";
+      xhr.open(method,url,true);
+      xhr.setRequestHeader("Content-Type","application/json");
+    //}
+    //else {
+      //method = "GET";
+      //xhr.open(method,url,true);
+    //}
+    
     xhr.setRequestHeader("Accept","application/json");
     xhr.send(body);
 }
 
 
 world = {};
-myId = parseInt(Math.random() * 10000);
+newObjects = {};
 
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
@@ -141,14 +165,9 @@ function getPosition(e) {
 
 
 
-function addEntity(entity, data) {
-    world[entity] = data;
-    var newObject = {};
-    newObject[entity] = data;
-    sendJSONXMLHTTPRequest("http://127.0.0.1:5000/world", newObject, null);
-    drawNextFrame();
-    //XXX: Send a XHTML Request that updates the entity you just  modified!
-
+function addEntity(entity) {
+    //sendJSONXMLHTTPRequest("http://127.0.0.1:5000/world", entity, null);
+    newObjects["O"+counter++] = entity;
 }
 
 // canvas + mouse/touch is complicated 
@@ -249,45 +268,58 @@ mouse = (function() {
 
 var counter = 0;
 
-function generateEntityName() {
-    var name = myId + "-" + (counter++)%100;
-    return name;
-}
-
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntity(generateEntityName(), {'x':x,'y':y,'colour':'blue'});
+    addEntity({'x':x,'y':y,'colour':document.getElementById('upColour').value,'radius':document.getElementById('upRadius').value});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntity(generateEntityName(), {'x':x,'y':y,'colour':'red'});
+    addEntity({'x':x,'y':y,'colour':document.getElementById('downColour').value,'radius':document.getElementById('downRadius').value});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntity(generateEntityName(), {'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntity({'x':x,'y':y,'colour':document.getElementById('dragColour').value,'radius':document.getElementById('dragRadius').value});
 });
 
 
 function update() {
     //XXX: TODO Get the world from the webservice using a XMLHTTPRequest
-    sendJSONXMLHTTPRequest("http://127.0.0.1:5000/world", null, parseRespose);
-    drawFrame();
+    sendJSONXMLHTTPRequest("http://127.0.0.1:5000/world", newObjects, parseRespose);
+    //drawFrame();
+}
+
+function resetCanvas() {
+  sendJSONXMLHTTPRequest("http://127.0.0.1:5000/clear", null, null);
 }
 
 function parseRespose(entities) {
+  var dif = Object.keys(entities).length - Object.keys(world).length;
+  if (dif == 0) {
+    return;
+  }
+  else if (dif < 0) {
+    world = {};
+    clearFrame();
+    dif = entities.length;
+  }
+  
   for (var entity in entities) {
     if (entity in world) {
       continue;
     }
     world[entity] = entities[entity];
     drawNextFrame();
+    dif--;
+    if (dif == 0) {
+      break;
+    }
   }
+  drawFrame();
 }
 
 // 30 frames per second
-setInterval( update, 200);
+setInterval( update, 1000 / 30.0);
 
 
 

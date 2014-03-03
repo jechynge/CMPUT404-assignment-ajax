@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright 2013 Abram Hindle
+# Copyright 2013 Abram Hindle, Jordan Ching
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 import flask
 from flask import Flask, request
 import json
+import random
 app = Flask(__name__)
 app.debug = True
 
@@ -88,8 +89,8 @@ def update(entity):
 def world():
     if(request.method == 'POST'):
         entities = flask_post_json()
-        for entity in entities:
-            myWorld.set(++myCounter, entity)
+        for i in entities:
+            myWorld.set(str(random.randint(1,1000000)), entities[i])
     
     return flask.jsonify(myWorld.world())
 
